@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Click & Send Location</title>
+</head>
+<body>
+  <h2>Nhấn link để gửi vị trí (bạn sẽ được hỏi quyền)</h2>
+
+  <!-- link có id để bắt event -->
+  <a href="#" id="track-link">Nhấn vào đây để gửi vị trí</a>
+
+  <script>
+  async function sendLocation(pos) {
+    try {
+      const body = {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+        timestamp: new Date().toISOString()
+      };
+
+      // gửi về server
+      const resp = await fetch('/api/report-location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!resp.ok) {
+        console.error('Server trả lỗi', resp.status);
+        alert('Không gửi được vị trí (server).');
+        return;
+      }
+
+      const j = await resp.json();
+      // thành công — tuỳ cậu muốn chuyển hướng tiếp
+      alert('Vị trí đã gửi: ' + JSON.stringify(body));
+      // nếu muốn redirect: window.location.href = j.redirect || '/thank-you';
+    } catch (e) {
+      console.error(e);
+      alert('Lỗi khi gửi vị trí.');
+    }
+  }
+
+  function handleError(err) {
+    console.warn('Geolocation error', err);
+    alert('Không thể lấy vị trí: ' + (err.message || err.code));
+  }
+
+  document.getElementById('track-link').addEventListener('click', function(e) {
+    e.preventDefault();
+
+    if (!navigator.geolocation) {
+      alert('Trình duyệt không hỗ trợ Geolocation.');
+      return;
+    }
+
+    // hỏi quyền và lấy vị trí 1 lần
+    navigator.geolocation.getCurrentPosition(sendLocation, handleError, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    });
+  });
+  </script>
+</body>
+</html>
+
